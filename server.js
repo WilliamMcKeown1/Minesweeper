@@ -3,18 +3,24 @@ const http       = require('http');
 const { Server } = require('socket.io');
 const path       = require('path');
 const fs         = require('fs');
+const os         = require('os');
 
 const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: '*' } });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.set('trust proxy', true);
+
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const WEB_ROOT = fs.existsSync(PUBLIC_DIR) ? PUBLIC_DIR : __dirname;
+app.use(express.static(WEB_ROOT));
 
 const PORT      = process.env.PORT || 3000;
 const MINE_RATE = 0.16;
 const BAN_MS    = 5 * 60 * 1000;
-const STATE_PATH = path.join(__dirname, 'grid-state.json');
+const STATE_PATH = process.env.STATE_PATH || path.join(os.tmpdir(), 'minesweeper-grid-state.json');
 let SEED = process.env.SEED ? parseInt(process.env.SEED, 10) : Math.floor(Math.random() * 1e9);
+let persistenceEnabled = true;
 
 const revealed   = new Map();
 const flagged    = new Map();
@@ -26,6 +32,7 @@ let totalRevealed = 0;
 let firstDigSafeCenter = null;
 
 function saveStateNow() {
+  if (!persistenceEnabled) return;
   const now = Date.now();
   const bansArr = [];
   for (const [ip, expiry] of bans.entries()) {
@@ -44,6 +51,7 @@ function saveStateNow() {
 
 let saveStateTimer = null;
 function scheduleSaveState() {
+  if (!persistenceEnabled) return;
   if (saveStateTimer) clearTimeout(saveStateTimer);
   saveStateTimer = setTimeout(() => {
     saveStateTimer = null;
@@ -56,6 +64,7 @@ function scheduleSaveState() {
 }
 
 function loadState() {
+  if (!persistenceEnabled) return;
   if (!fs.existsSync(STATE_PATH)) return;
   try {
     const raw = fs.readFileSync(STATE_PATH, 'utf8');
@@ -87,6 +96,7 @@ function loadState() {
     }
   } catch (err) {
     console.error('Failed to load persisted grid state:', err.message);
+    persistenceEnabled = false;
   }
 }
 
@@ -244,7 +254,19 @@ io.on('connection', socket => {
 
 loadState();
 
+if (persistenceEnabled) {
+  try {
+    // Smoke-test write access so Railway-like readonly filesystems fail gracefully.
+    saveStateNow();
+  } catch (err) {
+    persistenceEnabled = false;
+    console.warn('State persistence disabled:', err.message);
+  }
+}
+
 server.listen(PORT, () => {
   console.log(`\n  Endless Minesweeper -> http://localhost:${PORT}`);
   console.log(`  Board seed: ${SEED}\n`);
+  console.log(`  Web root: ${WEB_ROOT}`);
+  console.log(`  Persistence: ${persistenceEnabled ? STATE_PATH : 'disabled'}\n`);
 });

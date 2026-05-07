@@ -14,8 +14,13 @@ app.set('trust proxy', true);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const WEB_ROOT = fs.existsSync(PUBLIC_DIR) ? PUBLIC_DIR : __dirname;
 app.use(express.static(WEB_ROOT));
+if (WEB_ROOT !== __dirname) {
+  // Backward-compatible fallback for assets still living at repo root.
+  app.use(express.static(__dirname));
+}
 
 const PORT      = process.env.PORT || 3000;
+const HOST      = process.env.HOST || '0.0.0.0';
 const MINE_RATE = 0.16;
 const BAN_MS    = 5 * 60 * 1000;
 const STATE_PATH = process.env.STATE_PATH || path.join(os.tmpdir(), 'minesweeper-grid-state.json');
@@ -264,8 +269,11 @@ if (persistenceEnabled) {
   }
 }
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log(`\n  Endless Minesweeper -> http://localhost:${PORT}`);
+  if (process.env.RAILWAY_STATIC_URL) {
+    console.log(`  Public URL: https://${process.env.RAILWAY_STATIC_URL}`);
+  }
   console.log(`  Board seed: ${SEED}\n`);
   console.log(`  Web root: ${WEB_ROOT}`);
   console.log(`  Persistence: ${persistenceEnabled ? STATE_PATH : 'disabled'}\n`);

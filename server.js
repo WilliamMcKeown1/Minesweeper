@@ -20,7 +20,7 @@ if (WEB_ROOT !== __dirname) {
 }
 
 const PORT      = process.env.PORT || 3000;
-const HOST      = process.env.HOST || '0.0.0.0';
+const HOST      = '0.0.0.0';
 const MINE_RATE = 0.16;
 const BAN_MS    = 5 * 60 * 1000;
 const STATE_PATH = process.env.STATE_PATH || path.join(os.tmpdir(), 'minesweeper-grid-state.json');
@@ -268,6 +268,10 @@ if (persistenceEnabled) {
     console.warn('State persistence disabled:', err.message);
   }
 }
+
+server.on('error', (err) => {
+  console.error('HTTP server failed to start:', err);
+});
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  Endless Minesweeper -> http://localhost:${PORT}`);

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Endless Minesweeper — Multiplayer</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <div id="hud">
+    <div class="stat">revealed <span id="s-rev">0</span></div>
+    <div class="stat">online <span id="s-online">1</span></div>
+    <div class="stat">streak <span id="s-streak">0</span></div>
+    <button id="mode-btn">dig mode</button>
+    <div class="stat" id="s-pos">0, 0</div>
+  </div>
+
+  <div id="wrap-rel">
+    <div id="board-wrap">
+      <canvas id="c"></canvas>
+    </div>
+
+    <div id="ban-screen">
+      <div id="ban-box">
+        <div id="ban-icon">💣</div>
+        <div id="ban-title">You hit a mine</div>
+        <div id="ban-sub">You are banned for</div>
+        <div id="ban-timer">5:00</div>
+        <div id="ban-note">You can still watch others play.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls-hint">
+    left click: dig &nbsp;|&nbsp; right click: flag &nbsp;|&nbsp; middle-drag or right-drag: pan &nbsp;|&nbsp; scroll: zoom
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/game.js"></script>
+</body>
+</html>

@@ -10,6 +10,12 @@ const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: '*' } });
 
 app.set('trust proxy', true);
+app.get('/healthz', (_req, res) => {
+  res.status(200).type('text/plain').send('ok');
+});
+app.get('/favicon.ico', (_req, res) => {
+  res.status(204).end();
+});
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const WEB_ROOT = fs.existsSync(PUBLIC_DIR) ? PUBLIC_DIR : __dirname;

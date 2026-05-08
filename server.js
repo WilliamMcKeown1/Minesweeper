@@ -19,8 +19,9 @@ if (WEB_ROOT !== __dirname) {
   app.use(express.static(__dirname));
 }
 
-const PORT      = process.env.PORT || 3000;
-const HOST      = '0.0.0.0';
+const parsedPort = Number.parseInt(process.env.PORT || process.env.RAILWAY_PORT || '', 10);
+const PORT      = Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+const HOST      = process.env.HOST || '0.0.0.0';
 const MINE_RATE = 0.16;
 const BAN_MS    = 5 * 60 * 1000;
 const STATE_PATH = process.env.STATE_PATH || path.join(os.tmpdir(), 'minesweeper-grid-state.json');
@@ -269,16 +270,29 @@ if (persistenceEnabled) {
   }
 }
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+
 server.on('error', (err) => {
   console.error('HTTP server failed to start:', err);
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n  Endless Minesweeper -> http://localhost:${PORT}`);
+  const bound = server.address();
+  const boundHost = (bound && typeof bound === 'object' ? bound.address : HOST) || HOST;
+  const boundPort = (bound && typeof bound === 'object' ? bound.port : PORT) || PORT;
+  console.log(`\n  Endless Minesweeper listening on http://${boundHost}:${boundPort}`);
   if (process.env.RAILWAY_STATIC_URL) {
     console.log(`  Public URL: https://${process.env.RAILWAY_STATIC_URL}`);
   }
   console.log(`  Board seed: ${SEED}\n`);
+  console.log(`  Runtime PORT env: ${process.env.PORT || '(unset)'}`);
+  console.log(`  Runtime HOST env: ${process.env.HOST || '(unset)'}`);
   console.log(`  Web root: ${WEB_ROOT}`);
   console.log(`  Persistence: ${persistenceEnabled ? STATE_PATH : 'disabled'}\n`);
 });

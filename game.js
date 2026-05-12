@@ -17,6 +17,7 @@ let myStreak   = 0;
 let myId       = null;
 let players    = {};   // id -> { name, color, col, row }
 let totalRev   = 0;
+let hasEverDug = false;
 const OFFLINE_BAN_MS = 2 * 1000;
 const OFFLINE_SEED = 1337;
 const OFFLINE_MINE_RATE = 0.16;
@@ -77,6 +78,7 @@ if (socket) {
     totalRev += delta.length;
     document.getElementById('s-rev').textContent = totalRev;
     if (by === myId) {
+      hasEverDug = true
       myStreak += delta.length;
       document.getElementById('s-streak').textContent = myStreak;
     }
@@ -191,6 +193,7 @@ function offlineCountAround(col, row) {
 
 function offlineReveal(startCol, startRow) {
   const delta = [];
+  hasEverDug = true;  
   const stack = [[startCol, startRow]];
   while (stack.length) {
     const [c, r] = stack.pop();
@@ -417,7 +420,7 @@ function draw() {
 }
 // ── Interaction ───────────────────────────────────────
 function handleDig(sx, sy) {
-  
+  if (hasEverDug && !isNearRevealed(col, row)) return;
   if (banned) return;
   const [col, row] = screenToCell(sx, sy);
   const k = key(col, row);
@@ -524,6 +527,7 @@ canvas.addEventListener('mousemove', e => {
       offsetX = panOff[0] + dx;
       offsetY = panOff[1] + dy;
       didPan  = true;
+      boardDirty = true;
       draw();
     }
   }
@@ -568,6 +572,7 @@ canvas.addEventListener('wheel', e => {
   cellSize     = Math.min(CELL_MAX, Math.max(CELL_MIN, cellSize * factor));
   offsetX      = mx - worldX * cellSize;
   offsetY      = my - worldY * cellSize;
+  boardDirty   = true;
   draw();
 }, { passive: false });
 
@@ -592,6 +597,7 @@ canvas.addEventListener('touchmove', e => {
       offsetX = touchStart.ox + dx;
       offsetY = touchStart.oy + dy;
       touchStart.moved = true;
+      boardDirty = true;
       draw();
     }
   }

@@ -35,6 +35,9 @@ const wrap     = document.getElementById('board-wrap');
 const modeBtn  = document.getElementById('mode-btn');
 const banScreen = document.getElementById('ban-screen');
 const banTimer = document.getElementById('ban-timer');
+const offscreen = document.createElement('canvas');
+const offCtx = offscreen.getContext('2d');
+let boardDirty = true;
 
 // ── Socket ────────────────────────────────────────────
 let clientUUID = localStorage.getItem('player_uuid');
@@ -270,10 +273,47 @@ function loadOfflineState() {
   }
 }
 
+let wasPanning = false;
+
+canvas.addEventListener('mouseup', e => {
+  wasPanning = didPan;  // capture before reset
+  if (!didPan) {
+    const r = canvas.getBoundingClientRect();
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    if (e.button === 0) flagMode ? handleFlag(sx, sy) : handleDig(sx, sy);
+  }
+  panning  = false;
+  panStart = null;
+  panOff   = null;
+  didPan   = false;
+});
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (!wasPanning) {
+    const r = canvas.getBoundingClientRect();
+    handleFlag(e.clientX - r.left, e.clientY - r.top);
+  }
+});
+
+function isNearRevealed(col, row, maxDist = 2) {
+  for (let dr = -maxDist; dr <= maxDist; dr++) {
+    for (let dc = -maxDist; dc <= maxDist; dc++) {
+      if (Math.abs(dr) + Math.abs(dc) > maxDist) continue; // manhattan distance
+      if (`${col + dc},${row + dr}` in revealed) return true;
+    }
+  }
+  return false;
+}
 // ── Draw ──────────────────────────────────────────────
-function draw() {
-  const W  = canvas.width;
-  const H  = canvas.height;
+function drawBoard() {
+  if (!boardDirty) return;
+  boardDirty = false;
+  offscreen.width  = canvas.width;
+  offscreen.height = canvas.height;
+
+  const W  = offscreen.width;
+  const H  = offscreen.height;
   const cs = cellSize;
 
   const bgCell = cssVar('--bg-cell');
@@ -281,7 +321,7 @@ function draw() {
   const border = cssVar('--border');
   const textC  = cssVar('--text');
 
-  ctx.clearRect(0, 0, W, H);
+  offCtx.clearRect(0, 0, W, H);
 
   const colMin = Math.floor(-offsetX / cs) - 1;
   const colMax = Math.ceil((W - offsetX) / cs) + 1;
@@ -295,78 +335,78 @@ function draw() {
       const y = offsetY + row * cs;
 
       if (k in revealed) {
-        // Revealed safe cell
-        ctx.fillStyle = bgRev;
-        ctx.fillRect(x, y, cs, cs);
-        ctx.strokeStyle = border;
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x + 0.25, y + 0.25, cs - 0.5, cs - 0.5);
+        offCtx.fillStyle = bgRev;
+        offCtx.fillRect(x, y, cs, cs);
+        offCtx.strokeStyle = border;
+        offCtx.lineWidth = 0.5;
+        offCtx.strokeRect(x + 0.25, y + 0.25, cs - 0.5, cs - 0.5);
         const n = revealed[k];
         if (n > 0) {
-          ctx.fillStyle = NUM_COLORS[n] || textC;
-          ctx.font = `600 ${Math.round(cs * 0.52)}px 'Courier New', monospace`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(n, x + cs / 2, y + cs / 2 + 1);
+          offCtx.fillStyle = NUM_COLORS[n] || textC;
+          offCtx.font = `600 ${Math.round(cs * 0.52)}px 'Courier New', monospace`;
+          offCtx.textAlign = 'center';
+          offCtx.textBaseline = 'middle';
+          offCtx.fillText(n, x + cs / 2, y + cs / 2 + 1);
         }
       } else if (k in flagged) {
-        // Flagged cell
-        ctx.fillStyle = bgCell;
-        ctx.fillRect(x, y, cs, cs);
-        ctx.strokeStyle = border;
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x + 0.25, y + 0.25, cs - 0.5, cs - 0.5);
-        // Flag
+        offCtx.fillStyle = bgCell;
+        offCtx.fillRect(x, y, cs, cs);
+        offCtx.strokeStyle = border;
+        offCtx.lineWidth = 0.5;
+        offCtx.strokeRect(x + 0.25, y + 0.25, cs - 0.5, cs - 0.5);
         const fx = x + cs / 2, fy = y + cs / 2;
-        ctx.strokeStyle = '#D85A30';
-        ctx.lineWidth = cs * 0.07;
-        ctx.beginPath();
-        ctx.moveTo(fx - cs*0.04, fy - cs*0.32);
-        ctx.lineTo(fx - cs*0.04, fy + cs*0.28);
-        ctx.stroke();
-        ctx.fillStyle = '#D85A30';
-        ctx.beginPath();
-        ctx.moveTo(fx - cs*0.04, fy - cs*0.32);
-        ctx.lineTo(fx + cs*0.28, fy - cs*0.12);
-        ctx.lineTo(fx - cs*0.04, fy + cs*0.06);
-        ctx.closePath();
-        ctx.fill();
-        // Tiny dot if flagged by someone else
+        offCtx.strokeStyle = '#D85A30';
+        offCtx.lineWidth = cs * 0.07;
+        offCtx.beginPath();
+        offCtx.moveTo(fx - cs*0.04, fy - cs*0.32);
+        offCtx.lineTo(fx - cs*0.04, fy + cs*0.28);
+        offCtx.stroke();
+        offCtx.fillStyle = '#D85A30';
+        offCtx.beginPath();
+        offCtx.moveTo(fx - cs*0.04, fy - cs*0.32);
+        offCtx.lineTo(fx + cs*0.28, fy - cs*0.12);
+        offCtx.lineTo(fx - cs*0.04, fy + cs*0.06);
+        offCtx.closePath();
+        offCtx.fill();
         if (flagged[k] !== myId) {
           const p = players[flagged[k]];
           if (p) {
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(x + cs*0.82, y + cs*0.18, cs*0.1, 0, Math.PI*2);
-            ctx.fill();
+            offCtx.fillStyle = p.color;
+            offCtx.beginPath();
+            offCtx.arc(x + cs*0.82, y + cs*0.18, cs*0.1, 0, Math.PI*2);
+            offCtx.fill();
           }
         }
       } else {
-        // Unrevealed cell
-        ctx.fillStyle = bgCell;
-        ctx.fillRect(x, y, cs, cs);
-        ctx.strokeStyle = border;
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x + 0.25, y + 0.25, cs - 0.5, cs - 0.5);
+        offCtx.fillStyle = bgCell;
+        offCtx.fillRect(x, y, cs, cs);
+        offCtx.strokeStyle = border;
+        offCtx.lineWidth = 0.5;
+        offCtx.strokeRect(x + 0.25, y + 0.25, cs - 0.5, cs - 0.5);
       }
     }
   }
+}
 
-  // Draw other players' cursors
+function draw() {
+  drawBoard();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(offscreen, 0, 0);
+
+  const cs = cellSize;
+  const W  = canvas.width;
+  const H  = canvas.height;
+
   if (cs >= 10) {
     for (const [id, p] of Object.entries(players)) {
       if (id === myId) continue;
       const cx = offsetX + p.col * cs + cs / 2;
       const cy = offsetY + p.row * cs + cs / 2;
       if (cx < -cs || cx > W + cs || cy < -cs || cy > H + cs) continue;
-
-      // Cursor dot
       ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.arc(cx, cy, Math.max(4, cs * 0.16), 0, Math.PI * 2);
       ctx.fill();
-
-      // Name label
       if (cs >= 16) {
         ctx.fillStyle = p.color;
         ctx.font = `500 ${Math.max(9, Math.round(cs * 0.35))}px 'Courier New', monospace`;
@@ -377,13 +417,14 @@ function draw() {
     }
   }
 }
-
 // ── Interaction ───────────────────────────────────────
 function handleDig(sx, sy) {
+  
   if (banned) return;
   const [col, row] = screenToCell(sx, sy);
   const k = key(col, row);
   if (k in revealed || k in flagged) return;
+  if (totalRev > 0 && !isNearRevealed(col, row)) return;
   if (socket) {
     socket.emit('dig', { col, row });
     return;
@@ -413,6 +454,7 @@ function handleFlag(sx, sy) {
   const [col, row] = screenToCell(sx, sy);
   const k = key(col, row);
   if (k in revealed) return;
+  if (totalRev > 0 && !isNearRevealed(col, row)) return;
   const on = !(k in flagged);
   if (socket) {
     socket.emit('flag', { col, row, on });

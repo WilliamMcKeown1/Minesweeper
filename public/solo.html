@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Endless Minesweeper — Solo</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="top-nav">
+    <a class="nav-link" href="/index.html">multiplayer</a>
+    <a class="nav-link active" href="/solo.html">solo</a>
+  </div>
+
+  <div id="solo-controls">
+    <label>width <input id="grid-width" type="number" min="6" max="80" value="20" /></label>
+    <label>height <input id="grid-height" type="number" min="6" max="80" value="16" /></label>
+    <label>mines % <input id="mine-rate" type="number" min="5" max="40" step="1" value="16" /></label>
+    <button id="new-game-btn">new game</button>
+    <div class="stat">status <span id="solo-status">playing</span></div>
+    <div class="stat">revealed <span id="solo-revealed">0</span></div>
+    <div class="stat">mines <span id="solo-mines">0</span></div>
+  </div>
+
+  <div id="wrap-rel">
+    <div id="board-wrap">
+      <canvas id="c"></canvas>
+    </div>
+  </div>
+
+  <div id="controls-hint">
+    left click: dig &nbsp;|&nbsp; right click: flag
+  </div>
+
+  <script src="/solo.js"></script>
+</body>
+</html>

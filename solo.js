@@ -155,12 +155,19 @@ function revealAllMines() {
   }
 }
 
-// Checks if player has won using math
-function checkWin() {
-  const safeCells = cols * rows - totalMines;
+function setStatus(nextState) {
+  gameState = nextState;
+  statusLabel.textContent = nextState;
+  if (nextState === STATE_WON) statusLabel.style.color = cssVar("--accent");
+  else if (nextState === STATE_LOST) statusLabel.style.color = cssVar("--mine");
+  else statusLabel.style.color = cssVar("--text");
 }
 
-// Displays cell to screen
+function checkWin() {
+  const safeCells = cols * rows - totalMines;
+  if (revealedCount() >= safeCells) setStatus(STATE_WON);
+}
+
 function screenToCell(x, y) {
   const cs = Math.min(canvas.width / cols, canvas.height / rows);
   const boardW = cs * cols;

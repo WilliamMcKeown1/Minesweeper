@@ -186,8 +186,13 @@ const PLAYER_COLORS = ['#378ADD','#1D9E75','#D85A30','#7F77DD','#D4537E','#EF9F2
 let colorIdx = 0;
 
 io.on('connection', socket => {
-  const uuid = socket.handshake.query.uuid || randomUUID();
-  console.log(`+ ${socket.id} (${uuid})`);
+  const cookieUUID = (socket.handshake.headers.cookie || '')
+  .split(';')
+  .map(c => c.trim())
+  .find(c => c.startsWith('player_uuid='))
+  ?.split('=')[1]?.trim();
+
+  const uuid = cookieUUID || socket.handshake.query.uuid || randomUUID();
 
   const revealedArr = [];
   for (const [k, n] of revealed) {
@@ -209,6 +214,7 @@ io.on('connection', socket => {
     seed:      SEED,
     totalRevealed,
     players: [...players.entries()].map(([id, p]) => ({ id, ...p })),
+    uuid,
   });
 
   const color = PLAYER_COLORS[colorIdx++ % PLAYER_COLORS.length];

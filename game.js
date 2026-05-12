@@ -58,6 +58,9 @@ if (socket) {
     players = {};
     for (const p of (data.players || [])) players[p.id] = p;
     updateOnlineCount();
+    if (data.uuid) {
+    document.cookie = `player_uuid=${data.uuid};max-age=31536000;path=/`;
+    }
 
     if (data.banned && data.banExpiry > Date.now()) {
       applyBan(data.banExpiry);

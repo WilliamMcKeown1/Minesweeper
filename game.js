@@ -420,12 +420,11 @@ function draw() {
 }
 // ── Interaction ───────────────────────────────────────
 function handleDig(sx, sy) {
-  if (hasEverDug && !isNearRevealed(col, row)) return;
   if (banned) return;
   const [col, row] = screenToCell(sx, sy);
   const k = key(col, row);
   if (k in revealed || k in flagged) return;
-  if (totalRev > 0 && !isNearRevealed(col, row)) return;
+  if (hasEverDug && !isNearRevealed(col, row)) return;
   if (socket) {
     socket.emit('dig', { col, row });
     return;
@@ -533,32 +532,11 @@ canvas.addEventListener('mousemove', e => {
   }
 });
 
-canvas.addEventListener('mouseup', e => {
-  wasPanning = didPan;
-  if (!didPan) {
-    const r = canvas.getBoundingClientRect();
-    const sx = e.clientX - r.left, sy = e.clientY - r.top;
-    if (e.button === 0) flagMode ? handleFlag(sx, sy) : handleDig(sx, sy);
-  }
-  panning  = false;
-  panStart = null;
-  panOff   = null;
-  didPan   = false;
-});
-
 canvas.addEventListener('mouseleave', () => {
   panning  = false;
   panStart = null;
   panOff   = null;
   didPan   = false;
-});
-
-canvas.addEventListener('contextmenu', e => {
-  e.preventDefault();
-  if (!wasPanning) {
-    const r = canvas.getBoundingClientRect();
-    handleFlag(e.clientX - r.left, e.clientY - r.top);
-  }
 });
 
 canvas.addEventListener('wheel', e => {

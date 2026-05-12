@@ -273,8 +273,6 @@ function loadOfflineState() {
   }
 }
 
-let wasPanning = false;
-
 canvas.addEventListener('mouseup', e => {
   wasPanning = didPan;  // capture before reset
   if (!didPan) {
@@ -496,6 +494,7 @@ let panning  = false;
 let panStart = null;
 let panOff   = null;
 let didPan   = false;
+let wasPanning = false;
 
 canvas.addEventListener('mousedown', e => {
   if (e.button === 1 || e.button === 2) {
@@ -531,6 +530,7 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mouseup', e => {
+  wasPanning = didPan;
   if (!didPan) {
     const r = canvas.getBoundingClientRect();
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
@@ -551,7 +551,7 @@ canvas.addEventListener('mouseleave', () => {
 
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
-  if (!didPan) {
+  if (!wasPanning) {
     const r = canvas.getBoundingClientRect();
     handleFlag(e.clientX - r.left, e.clientY - r.top);
   }

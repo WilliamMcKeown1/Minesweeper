@@ -37,7 +37,9 @@ const banScreen = document.getElementById('ban-screen');
 const banTimer = document.getElementById('ban-timer');
 
 // ── Socket ────────────────────────────────────────────
-const socket = (typeof io === 'function') ? io() : null;
+let clientUUID = localStorage.getItem('player_uuid');
+if (!clientUUID) { clientUUID = crypto.randomUUID(); localStorage.setItem('player_uuid', clientUUID); }
+const socket = (typeof io === 'function') ? io({ query: { uuid: clientUUID } }) : null;
 
 if (socket) {
   socket.on('connect', () => { myId = socket.id; });

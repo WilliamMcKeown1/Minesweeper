@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const path       = require('path');
 const fs         = require('fs');
 const os         = require('os');
+const { randomUUID } = require('crypto');
 
 const app    = express();
 const server = http.createServer(app);
@@ -185,7 +186,7 @@ const PLAYER_COLORS = ['#378ADD','#1D9E75','#D85A30','#7F77DD','#D4537E','#EF9F2
 let colorIdx = 0;
 
 io.on('connection', socket => {
-  const ip = getIP(socket);
+  const uuid = socket.handshake.query.uuid || randomUUID();
   console.log(`+ ${socket.id} (${ip})`);
 
   const revealedArr = [];

@@ -48,8 +48,8 @@ function saveStateNow() {
   if (!persistenceEnabled) return;
   const now = Date.now();
   const bansArr = [];
-  for (const [ip, expiry] of bans.entries()) {
-    if (expiry > now) bansArr.push([ip, expiry]);
+  for (const [uuid, expiry] of bans.entries()) {
+    if (expiry > now) bansArr.push([uuid, expiry]);
   }
   const state = {
     seed: SEED,
@@ -103,8 +103,8 @@ function loadState() {
     }
     if (Array.isArray(state.bans)) {
       const now = Date.now();
-      for (const [ip, expiry] of state.bans) {
-        if (typeof ip === 'string' && Number.isFinite(expiry) && expiry > now) bans.set(ip, expiry);
+      for (const [uuid, expiry] of state.bans) {
+        if (typeof uuid === 'string' && Number.isFinite(expiry) && expiry > now) bans.set(uuid, expiry);
       }
     }
   } catch (err) {
@@ -166,16 +166,16 @@ function doReveal(startCol, startRow) {
   return delta;
 }
 
-function getIP(socket) {
+function getUUID(socket) {
   return (socket.handshake.headers['x-forwarded-for'] || '')
     .split(',')[0].trim() || socket.handshake.address;
 }
 
-function checkBan(ip) {
-  if (!bans.has(ip)) return null;
-  const expiry = bans.get(ip);
+function checkBan(uuid) {
+  if (!bans.has(uuid)) return null;
+  const expiry = bans.get(uuid);
   if (Date.now() >= expiry) {
-    bans.delete(ip);
+    bans.delete(uuid);
     scheduleSaveState();
     return null;
   }
@@ -187,7 +187,7 @@ let colorIdx = 0;
 
 io.on('connection', socket => {
   const uuid = socket.handshake.query.uuid || randomUUID();
-  console.log(`+ ${socket.id} (${ip})`);
+  console.log(`+ ${socket.id} (${uuid})`);
 
   const revealedArr = [];
   for (const [k, n] of revealed) {
@@ -200,7 +200,7 @@ io.on('connection', socket => {
     flaggedArr.push([c, r, sid]);
   }
 
-  const banExpiry = checkBan(ip);
+  const banExpiry = checkBan(uuid);
   socket.emit('init', {
     revealed:  revealedArr,
     flagged:   flaggedArr,
@@ -218,7 +218,7 @@ io.on('connection', socket => {
 
   socket.on('dig', ({ col, row }) => {
     col = Math.round(col); row = Math.round(row);
-    const banExp = checkBan(ip);
+    const banExp = checkBan(uuid);
     if (banExp !== null) { socket.emit('banned', { expiry: banExp }); return; }
     const k = `${col},${row}`;
     if (revealed.has(k) || flagged.has(k)) return;
@@ -229,9 +229,9 @@ io.on('connection', socket => {
     }
     if (hasMine(col, row)) {
       const expiry = Date.now() + BAN_MS;
-      bans.set(ip, expiry);
+      bans.set(uuid, expiry);
       scheduleSaveState();
-      console.log(`  BANNED ${ip} until ${new Date(expiry).toISOString()}`);
+      console.log(`  BANNED ${uuid} until ${new Date(expiry).toISOString()}`);
       socket.emit('banned', { expiry });
       return;
     }
@@ -243,7 +243,7 @@ io.on('connection', socket => {
   });
 
   socket.on('flag', ({ col, row, on }) => {
-    if (checkBan(ip) !== null) return;
+    if (checkBan(uuid) !== null) return;
     const k = `${col},${row}`;
     if (revealed.has(k)) return;
     if (on) flagged.set(k, socket.id);

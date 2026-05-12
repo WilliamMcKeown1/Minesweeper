@@ -166,11 +166,6 @@ function doReveal(startCol, startRow) {
   return delta;
 }
 
-function getUUID(socket) {
-  return (socket.handshake.headers['x-forwarded-for'] || '')
-    .split(',')[0].trim() || socket.handshake.address;
-}
-
 function checkBan(uuid) {
   if (!bans.has(uuid)) return null;
   const expiry = bans.get(uuid);

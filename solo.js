@@ -8,6 +8,7 @@ const widthInput = document.getElementById("grid-width");
 const heightInput = document.getElementById("grid-height");
 const mineRateInput = document.getElementById("mine-rate");
 const newGameBtn = document.getElementById("new-game-btn");
+const statusLabel = document.getElementById("solo-status");   // fix: was missing
 const revealedLabel = document.getElementById("solo-revealed");
 const minesLabel = document.getElementById("solo-mines");
 
@@ -192,6 +193,7 @@ function handleDig(col, row) {
     target.revealed = true;
     revealAllMines();
     revealedLabel.textContent = String(revealedCount());
+    setStatus(STATE_LOST);   // fix: was missing — game stayed in STATE_PLAYING after a loss
     draw();
     return;
   }
@@ -291,6 +293,7 @@ function startNewGame() {
   minesLabel.textContent = "0";
   revealedLabel.textContent = "0";
   firstClick = true;
+  setStatus(STATE_PLAYING);
   draw();
 }
 

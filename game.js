@@ -298,7 +298,7 @@ canvas.addEventListener('contextmenu', e => {
   }
 });
 
-function isNearRevealed(col, row, maxDist = 2) {
+function isNearRevealed(col, row, maxDist = 1) {
   for (let dr = -maxDist; dr <= maxDist; dr++) {
     for (let dc = -maxDist; dc <= maxDist; dc++) {
       if (Math.abs(dr) + Math.abs(dc) > maxDist) continue;

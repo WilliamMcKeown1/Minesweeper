@@ -49,7 +49,6 @@ if (socket) {
   socket.on('connect', () => { myId = socket.id; });
 
   socket.on('init', data => {
-    // Load full board state
     revealed = {};
     flagged  = {};
     for (const [c, r, n] of data.revealed) revealed[`${c},${r}`] = n;
@@ -58,18 +57,18 @@ if (socket) {
     totalRev = data.totalRevealed || 0;
     document.getElementById('s-rev').textContent = totalRev;
 
-    // Load existing players
     players = {};
     for (const p of (data.players || [])) players[p.id] = p;
     updateOnlineCount();
     if (data.uuid) {
-    document.cookie = `player_uuid=${data.uuid};max-age=31536000;path=/`;
+      document.cookie = `player_uuid=${data.uuid};max-age=31536000;path=/`;
     }
 
     if (data.banned && data.banExpiry > Date.now()) {
       applyBan(data.banExpiry);
     }
 
+    boardDirty = true;
     draw();
   });
 
@@ -78,10 +77,11 @@ if (socket) {
     totalRev += delta.length;
     document.getElementById('s-rev').textContent = totalRev;
     if (by === myId) {
-      hasEverDug = true
+      hasEverDug = true;
       myStreak += delta.length;
       document.getElementById('s-streak').textContent = myStreak;
     }
+    boardDirty = true;  // fix: was missing — reveal events never repainted
     draw();
   });
 
@@ -89,6 +89,7 @@ if (socket) {
     const k = `${col},${row}`;
     if (on) flagged[k] = by;
     else    delete flagged[k];
+    boardDirty = true;  // fix: was missing — flag events never repainted
     draw();
   });
 
@@ -105,7 +106,6 @@ if (socket) {
     draw();
   });
 } else {
-  // Keep the board usable even if socket.io client script failed to load.
   console.warn('Socket.io client not available; running in offline view mode.');
   initOfflineMode();
 }
@@ -193,7 +193,7 @@ function offlineCountAround(col, row) {
 
 function offlineReveal(startCol, startRow) {
   const delta = [];
-  hasEverDug = true;  
+  hasEverDug = true;
   const stack = [[startCol, startRow]];
   while (stack.length) {
     const [c, r] = stack.pop();
@@ -220,6 +220,7 @@ function initOfflineMode() {
   loadOfflineState();
   updateRevealedCount();
   updateStreakCount();
+  boardDirty = true;
   draw();
 }
 
@@ -277,7 +278,7 @@ function loadOfflineState() {
 }
 
 canvas.addEventListener('mouseup', e => {
-  wasPanning = didPan;  // capture before reset
+  wasPanning = didPan;
   if (!didPan) {
     const r = canvas.getBoundingClientRect();
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
@@ -300,12 +301,13 @@ canvas.addEventListener('contextmenu', e => {
 function isNearRevealed(col, row, maxDist = 2) {
   for (let dr = -maxDist; dr <= maxDist; dr++) {
     for (let dc = -maxDist; dc <= maxDist; dc++) {
-      if (Math.abs(dr) + Math.abs(dc) > maxDist) continue; // manhattan distance
+      if (Math.abs(dr) + Math.abs(dc) > maxDist) continue;
       if (`${col + dc},${row + dr}` in revealed) return true;
     }
   }
   return false;
 }
+
 // ── Draw ──────────────────────────────────────────────
 function drawBoard() {
   if (!boardDirty) return;
@@ -418,6 +420,7 @@ function draw() {
     }
   }
 }
+
 // ── Interaction ───────────────────────────────────────
 function handleDig(sx, sy) {
   if (banned) return;
@@ -430,7 +433,6 @@ function handleDig(sx, sy) {
     return;
   }
   if (!offlineFirstDigSafeCenter && totalRev === 0) {
-    // Guarantee first dig is a zero by forcing a mine-free 3x3 safe zone.
     offlineFirstDigSafeCenter = { col, row };
   }
   if (offlineHasMine(col, row)) {
@@ -446,6 +448,7 @@ function handleDig(sx, sy) {
   updateRevealedCount();
   updateStreakCount();
   saveOfflineState();
+  boardDirty = true;  // fix: was missing — offline digs never repainted
   draw();
 }
 
@@ -463,6 +466,7 @@ function handleFlag(sx, sy) {
   if (on) flagged[k] = myId;
   else    delete flagged[k];
   saveOfflineState();
+  boardDirty = true;  // fix: was missing — offline flags never repainted
   draw();
 }
 
@@ -486,6 +490,7 @@ modeBtn.onclick = () => {
 function resize() {
   canvas.width  = wrap.clientWidth;
   canvas.height = wrap.clientHeight;
+  boardDirty = true;
   draw();
 }
 new ResizeObserver(resize).observe(wrap);

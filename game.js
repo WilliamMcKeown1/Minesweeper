@@ -298,7 +298,7 @@ canvas.addEventListener('contextmenu', e => {
   }
 });
 
-function isNearRevealed(col, row, maxDist = 1) {
+function isNearRevealed(col, row, maxDist = 2) {
   for (let dr = -maxDist; dr <= maxDist; dr++) {
     for (let dc = -maxDist; dc <= maxDist; dc++) {
       if (Math.abs(dr) + Math.abs(dc) > maxDist) continue;
@@ -326,10 +326,10 @@ function drawBoard() {
 
   offCtx.clearRect(0, 0, W, H);
 
-  const colMin = Math.floor(-offsetX / cs) - 2;
-  const colMax = Math.ceil((W - offsetX) / cs) + 2;
-  const rowMin = Math.floor(-offsetY / cs) - 2;
-  const rowMax = Math.ceil((H - offsetY) / cs) + 2;
+  const colMin = Math.floor(-offsetX / cs) - 1;
+  const colMax = Math.ceil((W - offsetX) / cs) + 1;
+  const rowMin = Math.floor(-offsetY / cs) - 1;
+  const rowMax = Math.ceil((H - offsetY) / cs) + 1;
 
   for (let row = rowMin; row < rowMax; row++) {
     for (let col = colMin; col < colMax; col++) {
